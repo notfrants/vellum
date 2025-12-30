@@ -5,6 +5,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      rebuild_all:
+        description: 'Rebuild all packages (ignore change detection)'
+        type: boolean
+        default: false
+      purge_s3:
+        description: 'Delete ALL packages from S3 before deploy (DANGEROUS - use for testing only)'
+        type: boolean
+        default: false
 
 jobs:
   setup:
@@ -12,31 +22,105 @@ jobs:
     outputs:
       noarch: ${{ steps.generate-matrix.outputs.noarch }}
       multiarch: ${{ steps.generate-matrix.outputs.multiarch }}
+      has_packages: ${{ steps.generate-matrix.outputs.has_packages }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: changed
+        run: |
+          if [ "${{ github.event.inputs.rebuild_all }}" == "true" ]; then
+            echo "Rebuild all requested - building all packages"
+            echo "packages=all" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} 2>/dev/null | \
+              grep '^packages/' | cut -d/ -f2 | sort -u || echo "")
+            if [ -z "$CHANGED" ]; then
+              echo "No package changes detected"
+              echo "packages=" >> $GITHUB_OUTPUT
+            else
+              echo "Changed packages: $CHANGED"
+              echo "packages=$CHANGED" >> $GITHUB_OUTPUT
+            fi
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | \
+              grep '^packages/' | cut -d/ -f2 | sort -u || echo "")
+            if [ -z "$CHANGED" ]; then
+              echo "No package changes detected"
+              echo "packages=" >> $GITHUB_OUTPUT
+            else
+              echo "Changed packages: $CHANGED"
+              echo "packages=$CHANGED" >> $GITHUB_OUTPUT
+            fi
+          else
+            # workflow_dispatch without rebuild_all - build all
+            echo "packages=all" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate package matrix
         id: generate-matrix
         run: |
-          noarch_packages=$(for pkg in packages/*/APKBUILD; do
+          CHANGED="${{ steps.changed.outputs.packages }}"
+
+          # Get all noarch packages
+          all_noarch=$(for pkg in packages/*/APKBUILD; do
             if grep -q '^arch="noarch"' "$pkg"; then
               basename $(dirname "$pkg")
             fi
-          done | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          done)
 
-          multiarch_packages=$(for pkg in packages/*/APKBUILD; do
+          # Get all multiarch packages
+          all_multiarch=$(for pkg in packages/*/APKBUILD; do
             if grep -qE '^arch="(aarch64|armv7|aarch64 armv7)"' "$pkg"; then
               basename $(dirname "$pkg")
             fi
-          done | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          done)
 
-          echo "noarch=$noarch_packages" >> $GITHUB_OUTPUT
-          echo "multiarch=$multiarch_packages" >> $GITHUB_OUTPUT
+          # Filter to only changed packages (unless rebuild_all)
+          if [ "$CHANGED" == "all" ]; then
+            noarch_packages="$all_noarch"
+            multiarch_packages="$all_multiarch"
+          elif [ -z "$CHANGED" ]; then
+            noarch_packages=""
+            multiarch_packages=""
+          else
+            noarch_packages=""
+            multiarch_packages=""
+            for pkg in $CHANGED; do
+              if echo "$all_noarch" | grep -qx "$pkg"; then
+                noarch_packages="$noarch_packages $pkg"
+              fi
+              if echo "$all_multiarch" | grep -qx "$pkg"; then
+                multiarch_packages="$multiarch_packages $pkg"
+              fi
+            done
+          fi
+
+          # Convert to JSON arrays
+          noarch_json=$(echo "$noarch_packages" | tr ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          multiarch_json=$(echo "$multiarch_packages" | tr ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          echo "noarch=$noarch_json" >> $GITHUB_OUTPUT
+          echo "multiarch=$multiarch_json" >> $GITHUB_OUTPUT
+
+          # Check if we have any packages to build
+          if [ "$noarch_json" == "[]" ] && [ "$multiarch_json" == "[]" ]; then
+            echo "has_packages=false" >> $GITHUB_OUTPUT
+            echo "No packages to build"
+          else
+            echo "has_packages=true" >> $GITHUB_OUTPUT
+            echo "Noarch packages: $noarch_json"
+            echo "Multiarch packages: $multiarch_json"
+          fi
 
   build-noarch:
     needs: setup
+    if: needs.setup.outputs.has_packages == 'true' && fromJson(needs.setup.outputs.noarch)[0] != null
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         package: ${{ fromJson(needs.setup.outputs.noarch) }}
 
@@ -62,8 +146,10 @@ jobs:
 
   build-multi-arch:
     needs: setup
+    if: needs.setup.outputs.has_packages == 'true' && fromJson(needs.setup.outputs.multiarch)[0] != null
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         package: ${{ fromJson(needs.setup.outputs.multiarch) }}
         arch: [aarch64, armv7]
@@ -89,7 +175,8 @@ jobs:
           if-no-files-found: warn
 
   index:
-    needs: [build-noarch, build-multi-arch]
+    needs: [setup, build-noarch, build-multi-arch]
+    if: always() && needs.setup.outputs.has_packages == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,15 +185,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/
+          pattern: packages-*
           merge-multiple: true
 
       - name: Flatten package structure
         run: |
           mkdir -p dist/aarch64 dist/armv7
-          find dist -name "*.apk" -path "*/noarch/*" -exec sh -c 'cp "$1" dist/aarch64/ && cp "$1" dist/armv7/' _ {} \;
-          find dist -name "*.apk" -path "*/aarch64/*" ! -path "dist/aarch64/*" -exec mv {} dist/aarch64/ \;
-          find dist -name "*.apk" -path "*/armv7/*" ! -path "dist/armv7/*" -exec mv {} dist/armv7/ \;
+          find dist -name "*.apk" -path "*/noarch/*" -exec sh -c 'cp "$1" dist/aarch64/ && cp "$1" dist/armv7/' _ {} \; 2>/dev/null || true
+          find dist -name "*.apk" -path "*/aarch64/*" ! -path "dist/aarch64/*" -exec mv {} dist/aarch64/ \; 2>/dev/null || true
+          find dist -name "*.apk" -path "*/armv7/*" ! -path "dist/armv7/*" -exec mv {} dist/armv7/ \; 2>/dev/null || true
           rm -rf dist/packages dist/noarch
+          echo "Built packages:"
+          ls -la dist/aarch64/*.apk dist/armv7/*.apk 2>/dev/null || echo "No packages found"
 
       - name: Set up signing key
         run: |
@@ -143,15 +233,17 @@ jobs:
           path: dist/
 
   deploy:
-    needs: index
+    needs: [setup, index]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: always() && needs.setup.outputs.has_packages == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
-      - name: Download repository
+      - uses: actions/checkout@v4
+
+      - name: Download built packages
         uses: actions/download-artifact@v4
         with:
           name: repository
-          path: dist/
+          path: new-packages/
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -160,6 +252,60 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Sync to S3
+      - name: Set up signing key
         run: |
-          aws s3 sync dist/ s3://packages.vellum.delivery/ --delete
+          if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
+            echo "${{ secrets.SIGNING_KEY }}" > keys/packages.rsa
+            chmod 600 keys/packages.rsa
+          fi
+
+      - name: Purge S3 bucket (if requested)
+        if: github.event.inputs.purge_s3 == 'true'
+        run: |
+          echo "⚠️  PURGING ALL PACKAGES FROM S3 ⚠️"
+          for arch in aarch64 armv7; do
+            aws s3 rm s3://packages.vellum.delivery/$arch/ --recursive
+          done
+          echo "S3 bucket purged"
+
+      - name: Upload new packages and regenerate index
+        run: |
+          for arch in aarch64 armv7; do
+            echo "Processing $arch..."
+
+            # Upload new packages (without deleting old ones)
+            if [ -d "new-packages/$arch" ] && ls new-packages/$arch/*.apk >/dev/null 2>&1; then
+              echo "Uploading new packages for $arch..."
+              aws s3 cp new-packages/$arch/ s3://packages.vellum.delivery/$arch/ \
+                --recursive --exclude "APKINDEX.tar.gz"
+            fi
+
+            # Download ALL packages from S3 to regenerate complete index
+            echo "Downloading all packages from S3 for $arch..."
+            mkdir -p s3-packages/$arch
+            aws s3 cp s3://packages.vellum.delivery/$arch/ s3-packages/$arch/ \
+              --recursive --exclude "APKINDEX.tar.gz" || true
+
+            # Generate fresh index with all packages
+            if ls s3-packages/$arch/*.apk >/dev/null 2>&1; then
+              echo "Regenerating APKINDEX for $arch with $(ls s3-packages/$arch/*.apk | wc -l) packages..."
+              docker run --rm \
+                -v "$PWD/s3-packages/$arch:/packages:Z" \
+                -v "$PWD/keys:/keys:ro" \
+                -w /packages \
+                alpine:edge \
+                sh -c "
+                  apk add --no-cache apk-tools abuild
+                  cp /keys/packages.rsa.pub /etc/apk/keys/
+                  apk index --rewrite-arch $arch -o APKINDEX.tar.gz *.apk
+                  abuild-sign -k /keys/packages.rsa APKINDEX.tar.gz
+                  chown $(id -u):$(id -g) APKINDEX.tar.gz
+                "
+
+              # Upload new index
+              aws s3 cp s3-packages/$arch/APKINDEX.tar.gz \
+                s3://packages.vellum.delivery/$arch/APKINDEX.tar.gz
+            fi
+          done
+
+          echo "Deploy complete!"
