@@ -1,27 +1,27 @@
 # Maintainer: Mitchell Scott <mitchell@scottlabs.io>
-pkgname=bettertoc
+pkgname=hide-dev-mode-icon
 pkgver=1.0.0
 pkgrel=0
 _author="rmitchellscott"
 _author_url="https://github.com/rmitchellscott"
-pkgdesc="Adds the ability to add, delete, and edit Table of Contents entries in notebooks, PDFs, and EPUBs."
+pkgdesc="Hides the developer mode icon next to the battery icon."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"
 license="MIT"
 depends="xovi-qt-resource-rebuilder remarkable-os>=3.24"
 source="
-betterToc.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/betterToc.qmd
+hideDevModeIcon.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/hideDevModeIcon.qmd
 LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
 "
 options="!check !fhs"
 sha512sums="
-241dc6002b3eea415524751ad6fbfc1e5f7af4352553eac197ad48c3f0946e5e8d4a7f9243758a4546a15744c5d79a8e441df14d4f446a4943e696957b91cd4e
+1b3a7d07d02c0f2b2e6b63eef350ab9e0a51da068288f21136463ee95c09f4215a15e74b24c223c134ce7b1fa03af7b5c30df69f433fe016c8b9626fef496686
 SKIP
 "
 
 package() {
-    install -Dm644 "$srcdir/betterToc.qmd" \
-        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/betterToc.qmd"
+    install -Dm644 "$srcdir/hideDevModeIcon.qmd" \
+        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/hideDevModeIcon.qmd"
 
     mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
     install -Dm644 "$srcdir/LICENSE" \

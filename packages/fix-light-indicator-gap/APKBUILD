@@ -1,27 +1,27 @@
 # Maintainer: Mitchell Scott <mitchell@scottlabs.io>
-pkgname=bettertoc
+pkgname=fix-light-indicator-gap
 pkgver=1.0.0
 pkgrel=0
 _author="rmitchellscott"
 _author_url="https://github.com/rmitchellscott"
-pkgdesc="Adds the ability to add, delete, and edit Table of Contents entries in notebooks, PDFs, and EPUBs."
+pkgdesc="Removes the gap reserved for the frontlight icon when the light is off on Paper Pro and Paper Pro Move."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"
 license="MIT"
-depends="xovi-qt-resource-rebuilder remarkable-os>=3.24"
+depends="xovi-qt-resource-rebuilder remarkable-os>=3.24 rmpp | rmppm"
 source="
-betterToc.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/betterToc.qmd
+fixLightIndicatorGap.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/fixLightIndicatorGap.qmd
 LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
 "
 options="!check !fhs"
 sha512sums="
-241dc6002b3eea415524751ad6fbfc1e5f7af4352553eac197ad48c3f0946e5e8d4a7f9243758a4546a15744c5d79a8e441df14d4f446a4943e696957b91cd4e
+ac832d12c12dc51388315419fa86d9261afcf239c2c24ddb1fb7897c8ef9f36d250e8d34edcf0120a80a8231f51342550871f23061faf78194ed18b0a3686a0e
 SKIP
 "
 
 package() {
-    install -Dm644 "$srcdir/betterToc.qmd" \
-        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/betterToc.qmd"
+    install -Dm644 "$srcdir/fixLightIndicatorGap.qmd" \
+        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/fixLightIndicatorGap.qmd"
 
     mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
     install -Dm644 "$srcdir/LICENSE" \

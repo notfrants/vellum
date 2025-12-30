@@ -1,27 +1,27 @@
 # Maintainer: Mitchell Scott <mitchell@scottlabs.io>
-pkgname=bettertoc
+pkgname=unlock-methods-content
 pkgver=1.0.0
 pkgrel=0
 _author="rmitchellscott"
 _author_url="https://github.com/rmitchellscott"
-pkgdesc="Adds the ability to add, delete, and edit Table of Contents entries in notebooks, PDFs, and EPUBs."
+pkgdesc="Bypasses subscription check for using on-device Methods templates and documents."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"
 license="MIT"
 depends="xovi-qt-resource-rebuilder remarkable-os>=3.24"
 source="
-betterToc.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/betterToc.qmd
+unlockMethodsContent.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/unlockMethodsContent.qmd
 LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
 "
 options="!check !fhs"
 sha512sums="
-241dc6002b3eea415524751ad6fbfc1e5f7af4352553eac197ad48c3f0946e5e8d4a7f9243758a4546a15744c5d79a8e441df14d4f446a4943e696957b91cd4e
+baf01c78f35a2684ddd749109543072c995f8e70066363ad90919774a8da7c8c949e369d74644ffb9d3144d19bfff855cc542943ba3867a1a233feda669e09fe
 SKIP
 "
 
 package() {
-    install -Dm644 "$srcdir/betterToc.qmd" \
-        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/betterToc.qmd"
+    install -Dm644 "$srcdir/unlockMethodsContent.qmd" \
+        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/unlockMethodsContent.qmd"
 
     mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
     install -Dm644 "$srcdir/LICENSE" \

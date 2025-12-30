@@ -7,8 +7,9 @@ _author_url="https://github.com/asivery"
 pkgdesc="Base xovi framework for reMarkable tablets"
 url="https://github.com/asivery/rm-xovi-extensions"
 arch="aarch64 armv7"
-license="MIT"
+license="GPL-3.0"
 depends="remarkable-os>=3.20"
+install="$pkgname.pre-deinstall"
 options="!check !fhs !strip !tracedeps"
 
 subpackages="
@@ -26,11 +27,13 @@ _release="v16-14112025"
 source="
 extensions-aarch64.zip::https://github.com/asivery/rm-xovi-extensions/releases/download/$_release/extensions-aarch64.zip
 extensions-armv7.zip::https://github.com/asivery/rm-xovi-extensions/releases/download/$_release/extensions-arm32-testing.zip
+LICENSE::https://raw.githubusercontent.com/asivery/rm-xovi-extensions/main/LICENSE
 "
 
 sha512sums="
-2688a21c3f2e01f0b08fde3cb3a455907aa5f8ad9cd62599d0db21a5d533b7e60ad57a0755819879369c873966c25a53546fbf87d533150a44c2c6e0249fb532  extensions-aarch64.zip
-e2b0231ef9e00859c9d094af2150031664d6ed414db05b0c6d9d0291273acb013fdd054b9f920f8f8974bb2c5402c85726c22e3af7af963637d76cace38fcb8c  extensions-armv7.zip
+2688a21c3f2e01f0b08fde3cb3a455907aa5f8ad9cd62599d0db21a5d533b7e60ad57a0755819879369c873966c25a53546fbf87d533150a44c2c6e0249fb532
+e2b0231ef9e00859c9d094af2150031664d6ed414db05b0c6d9d0291273acb013fdd054b9f920f8f8974bb2c5402c85726c22e3af7af963637d76cace38fcb8c
+SKIP
 "
 
 prepare() {
@@ -45,6 +48,12 @@ package() {
     install -Dm755 "$srcdir/install-xovi-for-rm" \
         "$pkgdir/home/root/.local/bin/install-xovi-for-rm"
     mkdir -p "$pkgdir/home/root/xovi/extensions.d"
+
+    mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
+    install -Dm644 "$srcdir/LICENSE" \
+        "$pkgdir/home/root/.vellum/licenses/$pkgname/LICENSE"
+    echo "https://github.com/asivery/rm-xovi-extensions/archive/refs/tags/$_release.tar.gz" > \
+        "$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
 }
 
 qt_resource_rebuilder() {

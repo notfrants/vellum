@@ -10,11 +10,15 @@ arch="aarch64 armv7"
 license="MIT"
 depends="xovi"
 install="$pkgname.post-install $pkgname.pre-deinstall"
-source="$pkgname-$pkgver.tar.gz::https://github.com/rmitchellscott/xovi-tripletap/archive/v$pkgver.tar.gz"
+source="
+$pkgname-$pkgver.tar.gz::https://github.com/rmitchellscott/xovi-tripletap/archive/v$pkgver.tar.gz
+LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-tripletap/main/LICENSE
+"
 builddir="$srcdir/xovi-tripletap-$pkgver"
 options="!check !fhs !strip !tracedeps"
 sha512sums="
-ef498dac965860be8c4dd17c3d51ac47cb3dbaaf1b6bb6e483fb7aa5dfcdc7fac25f391188d75a250ee2ffc6f41f8087391d1bf2ae9cff974cdb32a614e1d337  tripletap-0.3.0.tar.gz
+ef498dac965860be8c4dd17c3d51ac47cb3dbaaf1b6bb6e483fb7aa5dfcdc7fac25f391188d75a250ee2ffc6f41f8087391d1bf2ae9cff974cdb32a614e1d337
+SKIP
 "
 
 package() {
@@ -49,4 +53,10 @@ package() {
 
     # Write version file
     echo "$pkgver" > "$install_dir/version.txt"
+
+    mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
+    install -Dm644 "$srcdir/LICENSE" \
+        "$pkgdir/home/root/.vellum/licenses/$pkgname/LICENSE"
+    echo "https://github.com/rmitchellscott/xovi-tripletap/archive/v$pkgver.tar.gz" > \
+        "$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
 }

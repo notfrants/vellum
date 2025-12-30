@@ -3,6 +3,18 @@ set -e
 
 VELLUM_ROOT="/home/root/.vellum"
 
+ensure_apk_mount() {
+    # Use overlayfs to make /usr/lib writable for apk database
+    # /lib is a symlink to usr/lib, so apk looks at /usr/lib/apk/db
+    if ! mountpoint -q /usr/lib 2>/dev/null; then
+        mkdir -p "$VELLUM_ROOT/lib-overlay/upper" "$VELLUM_ROOT/lib-overlay/work"
+        mount -t overlay overlay \
+            -o "lowerdir=/usr/lib,upperdir=$VELLUM_ROOT/lib-overlay/upper,workdir=$VELLUM_ROOT/lib-overlay/work" \
+            /usr/lib
+    fi
+    mkdir -p /lib/apk/db
+}
+
 get_os_version() {
     ver=$(grep RELEASE_VERSION /usr/share/remarkable/update.conf 2>/dev/null | cut -d= -f2 | tr -d '"')
     [ -z "$ver" ] && ver=$(grep IMG_VERSION /etc/os-release 2>/dev/null | cut -d= -f2 | tr -d '"')
@@ -32,7 +44,7 @@ pkgdesc = Virtual package representing reMarkable OS version
 url = https://github.com/rmitchellscott/vellum
 arch = noarch
 license = MIT
-provides = remarkable-os=$VERSION
+provides = /bin/sh
 EOF
 
     mkdir -p "$PKG_DIR/empty"
@@ -48,17 +60,132 @@ update_local_index() {
     APK_ARCH=$(get_apk_arch)
     REPO_DIR="$VELLUM_ROOT/local-repo/$APK_ARCH"
     INDEX_DIR=$(mktemp -d)
+    LOCAL_KEY="$VELLUM_ROOT/etc/apk/keys/local.rsa"
 
     for apk in "$REPO_DIR/"*.apk; do
         [ -f "$apk" ] || continue
-        tar -xzf "$apk" -O .PKGINFO >> "$INDEX_DIR/APKINDEX"
+
+        # Extract .PKGINFO and convert to APKINDEX format
+        PKGINFO=$(tar -xzf "$apk" -O .PKGINFO)
+
+        # Compute checksum (Q1 prefix = SHA1)
+        CKSUM=$(openssl dgst -sha1 -binary "$apk" | openssl base64 | tr -d '\n')
+
+        # Convert PKGINFO format to APKINDEX format
+        echo "C:Q1${CKSUM}" >> "$INDEX_DIR/APKINDEX"
+        echo "$PKGINFO" | while IFS= read -r line; do
+            key=$(echo "$line" | cut -d= -f1 | tr -d ' ')
+            val=$(echo "$line" | cut -d= -f2- | sed 's/^ *//')
+            case "$key" in
+                pkgname) echo "P:$val" ;;
+                pkgver) echo "V:$val" ;;
+                arch) echo "A:$val" ;;
+                pkgdesc) echo "T:$val" ;;
+                url) echo "U:$val" ;;
+                license) echo "L:$val" ;;
+                provides) echo "p:$val" ;;
+                depends) echo "D:$val" ;;
+            esac
+        done >> "$INDEX_DIR/APKINDEX"
+        echo "S:$(stat -c %s "$apk" 2>/dev/null || stat -f %z "$apk")" >> "$INDEX_DIR/APKINDEX"
+        echo "I:0" >> "$INDEX_DIR/APKINDEX"
         echo "" >> "$INDEX_DIR/APKINDEX"
     done
 
     cd "$INDEX_DIR"
-    tar -czf "$REPO_DIR/APKINDEX.tar.gz" APKINDEX
+
+    if [ -f "$LOCAL_KEY" ]; then
+        # Create unsigned APKINDEX.tar.gz
+        tar -czf unsigned.tar.gz APKINDEX
+        # Sign it
+        openssl dgst -sha1 -sign "$LOCAL_KEY" -out ".SIGN.RSA.local.rsa.pub" unsigned.tar.gz
+        # Create signature tar (uncompressed, then find size before padding)
+        tar -cf sig.tar .SIGN.RSA.local.rsa.pub
+        # Find actual content size (skip trailing zero blocks - each block is 512 bytes)
+        # Signature file is ~256 bytes, tar header is 512 bytes, so ~768 bytes of content
+        # Round up to nearest 512 and add one block = 1536 bytes typically
+        SIG_SIZE=$(stat -c %s ".SIGN.RSA.local.rsa.pub" 2>/dev/null || stat -f %z ".SIGN.RSA.local.rsa.pub")
+        # tar header (512) + content rounded to 512
+        CONTENT_BLOCKS=$(( (512 + SIG_SIZE + 511) / 512 ))
+        CONTENT_SIZE=$(( CONTENT_BLOCKS * 512 ))
+        # Truncate tar to remove trailing zeros and gzip
+        dd if=sig.tar bs=512 count=$CONTENT_BLOCKS 2>/dev/null | gzip -n -9 > sig.tar.gz
+        # Concatenate
+        cat sig.tar.gz unsigned.tar.gz > "$REPO_DIR/APKINDEX.tar.gz"
+        rm -f unsigned.tar.gz sig.tar sig.tar.gz
+    else
+        tar -czf "$REPO_DIR/APKINDEX.tar.gz" APKINDEX
+    fi
 
     rm -rf "$INDEX_DIR"
+}
+
+get_device_type() {
+    MACHINE=$(cat /sys/devices/soc0/machine 2>/dev/null || echo "unknown")
+    case "$MACHINE" in
+        *ferrari*) echo "rmpp" ;;
+        *chiappa*) echo "rmppm" ;;
+        *) echo "rm2" ;;
+    esac
+}
+
+generate_device_package() {
+    DEVICE="$1"
+    APK_ARCH=$(get_apk_arch)
+    PKG_DIR=$(mktemp -d)
+    REPO_DIR="$VELLUM_ROOT/local-repo/$APK_ARCH"
+
+    mkdir -p "$REPO_DIR"
+
+    case "$DEVICE" in
+        rmpp) DESC="reMarkable Paper Pro" ;;
+        rmppm) DESC="reMarkable Paper Pro Move" ;;
+        rm2) DESC="reMarkable 2" ;;
+        rm1) DESC="reMarkable 1" ;;
+    esac
+
+    cat > "$PKG_DIR/.PKGINFO" <<EOF
+pkgname = $DEVICE
+pkgver = 1.0.0-r0
+pkgdesc = Virtual package for $DESC
+url = https://github.com/rmitchellscott/vellum
+arch = noarch
+license = MIT
+provides = $DEVICE
+EOF
+
+    mkdir -p "$PKG_DIR/empty"
+    tar -czf "$PKG_DIR/data.tar.gz" -C "$PKG_DIR/empty" .
+
+    cd "$PKG_DIR"
+    tar -czf "$REPO_DIR/$DEVICE-1.0.0-r0.apk" .PKGINFO data.tar.gz
+
+    rm -rf "$PKG_DIR"
+}
+
+ensure_device_package() {
+    DEVICE=$(get_device_type)
+    APK_ARCH=$(get_apk_arch)
+    REPO_DIR="$VELLUM_ROOT/local-repo/$APK_ARCH"
+    STATE_FILE="$VELLUM_ROOT/state/device"
+    PREV_DEVICE=$(cat "$STATE_FILE" 2>/dev/null || true)
+
+    if [ "$DEVICE" != "$PREV_DEVICE" ] || [ ! -f "$REPO_DIR/$DEVICE-1.0.0-r0.apk" ]; then
+        mkdir -p "$REPO_DIR" "$VELLUM_ROOT/state"
+
+        rm -f "$REPO_DIR/rm1-"*.apk "$REPO_DIR/rm2-"*.apk \
+              "$REPO_DIR/rmpp-"*.apk "$REPO_DIR/rmppm-"*.apk
+
+        generate_device_package "$DEVICE"
+        update_local_index
+        echo "$DEVICE" > "$STATE_FILE"
+
+        "$VELLUM_ROOT/bin/apk.static" \
+            --keys-dir "$VELLUM_ROOT/etc/apk/keys" \
+            --repositories-file "$VELLUM_ROOT/etc/apk/repositories" \
+            --no-logfile \
+            add "$DEVICE" >/dev/null 2>&1 || true
+    fi
 }
 
 ensure_remarkable_os() {
@@ -73,14 +200,22 @@ ensure_remarkable_os() {
         generate_remarkable_os_package "$CUR_VER"
         update_local_index
         echo "$CUR_VER" > "$VELLUM_ROOT/state/osver"
+        # Explicitly install to prevent auto-removal as orphan
+        "$VELLUM_ROOT/bin/apk.static" \
+            --keys-dir "$VELLUM_ROOT/etc/apk/keys" \
+            --repositories-file "$VELLUM_ROOT/etc/apk/repositories" \
+            --no-logfile \
+            add remarkable-os >/dev/null 2>&1 || true
     fi
 }
 
+ensure_apk_mount
 ensure_remarkable_os
+ensure_device_package
 
 exec "$VELLUM_ROOT/bin/apk.static" \
-    --root "$VELLUM_ROOT" \
     --keys-dir "$VELLUM_ROOT/etc/apk/keys" \
     --repositories-file "$VELLUM_ROOT/etc/apk/repositories" \
     --cache-dir "$VELLUM_ROOT/cache" \
+    --no-logfile \
     "$@"

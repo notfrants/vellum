@@ -1,27 +1,27 @@
 # Maintainer: Mitchell Scott <mitchell@scottlabs.io>
-pkgname=bettertoc
+pkgname=prevent-notebook-zoomout
 pkgver=1.0.0
 pkgrel=0
 _author="rmitchellscott"
 _author_url="https://github.com/rmitchellscott"
-pkgdesc="Adds the ability to add, delete, and edit Table of Contents entries in notebooks, PDFs, and EPUBs."
+pkgdesc="Forces all notebook pages to start at 1x zoom with optional horizontal offset. Only affects notebooks, only affects portrait orientation."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"
 license="MIT"
 depends="xovi-qt-resource-rebuilder remarkable-os>=3.24"
 source="
-betterToc.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/betterToc.qmd
+preventNotebookZoomOut.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/preventNotebookZoomOut.qmd
 LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
 "
 options="!check !fhs"
 sha512sums="
-241dc6002b3eea415524751ad6fbfc1e5f7af4352553eac197ad48c3f0946e5e8d4a7f9243758a4546a15744c5d79a8e441df14d4f446a4943e696957b91cd4e
+a00501646d0c65b3bc6d37d8021252df523f5b61d48ed177fab91b8222c82ba213cd475dbc9bde262f1259369579a5a9e4f8b55adc2f8b701f5874d0e14b1327
 SKIP
 "
 
 package() {
-    install -Dm644 "$srcdir/betterToc.qmd" \
-        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/betterToc.qmd"
+    install -Dm644 "$srcdir/preventNotebookZoomOut.qmd" \
+        "$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/preventNotebookZoomOut.qmd"
 
     mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
     install -Dm644 "$srcdir/LICENSE" \
