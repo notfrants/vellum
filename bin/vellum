@@ -157,6 +157,7 @@ ensure_device_package() {
         "$VELLUM_ROOT/bin/apk.vellum" \
             --root "$VELLUM_ROOT" \
             --dest / \
+            --force-no-chroot \
             --no-logfile \
             add "$DEVICE" >/dev/null 2>&1 || true
     fi
@@ -178,6 +179,7 @@ ensure_remarkable_os() {
         "$VELLUM_ROOT/bin/apk.vellum" \
             --root "$VELLUM_ROOT" \
             --dest / \
+            --force-no-chroot \
             --no-logfile \
             add remarkable-os >/dev/null 2>&1 || true
     fi
@@ -191,5 +193,6 @@ export APK_CONFIG="$VELLUM_ROOT/etc/apk/config"
 exec "$VELLUM_ROOT/bin/apk.vellum" \
     --root "$VELLUM_ROOT" \
     --dest / \
+    --force-no-chroot \
     --no-logfile \
     "$@"
