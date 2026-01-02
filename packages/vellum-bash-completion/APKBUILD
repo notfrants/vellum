@@ -45,6 +45,13 @@ _comp_cmd_vellum() {
 		return
 	fi
 
+	# Translate aliases for argument completion
+	case "${COMP_WORDS[1]}" in
+		install) COMP_WORDS[1]=add ;;
+		remove|purge) COMP_WORDS[1]=del ;;
+		show) COMP_WORDS[1]=info ;;
+	esac
+
 	if [[ $COMP_CWORD -eq 1 ]]; then
 		_comp_cmd_vellum_apk
 		COMPREPLY+=($(compgen -W "self install remove purge show" -- "$cur"))

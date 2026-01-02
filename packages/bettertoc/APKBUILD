@@ -1,6 +1,6 @@
 maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=bettertoc
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=0
 _upstream_author="rmitchellscott"
 pkgdesc="Adds the ability to add, delete, and edit Table of Contents entries in notebooks, PDFs, and EPUBs."
@@ -13,10 +13,6 @@ betterToc.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensi
 LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
 "
 options="!check !fhs"
-sha512sums="
-241dc6002b3eea415524751ad6fbfc1e5f7af4352553eac197ad48c3f0946e5e8d4a7f9243758a4546a15744c5d79a8e441df14d4f446a4943e696957b91cd4e  betterToc.qmd
-b7a86c9fc7a740ff680037b0e6b646ccd70e4e74fef78669b8ba92e18b873e4673fbba064272c595d13bc016288cd4a0532cd974534b7fef43a5b065f24add95  LICENSE
-"
 
 package() {
 	install -Dm644 "$srcdir/betterToc.qmd" \
@@ -28,3 +24,7 @@ package() {
 	echo "https://github.com/rmitchellscott/xovi-qmd-extensions" > \
 		"$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
 }
+sha512sums="
+2cc4b9f89b69cbeaed488598810d8f232121a52f8ea9128f101142794ef81a2b4d27421a71676bbf035c1d70b65abfcc7a87aec1194fc6e314a871c424748ce4  betterToc.qmd
+b7a86c9fc7a740ff680037b0e6b646ccd70e4e74fef78669b8ba92e18b873e4673fbba064272c595d13bc016288cd4a0532cd974534b7fef43a5b065f24add95  LICENSE
+"
