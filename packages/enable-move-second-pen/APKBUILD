@@ -1,0 +1,31 @@
+maintainer="Mitchell Scott <mitchell@scottlabs.io>"
+pkgname=enable-move-second-pen
+pkgver=1.0.0
+pkgrel=0
+_upstream_author="rmitchellscott"
+_category="ui"
+pkgdesc="Enables the secondary pen on Paper Pro Move"
+url="https://github.com/rmitchellscott/xovi-qmd-extensions"
+arch="noarch"
+license="MIT"
+depends="qt-resource-rebuilder remarkable-os>=3.22.4.2 remarkable-os<3.25 rmppm"
+source="
+enableMoveSecondPen.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/enableMoveSecondPen.qmd
+LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
+"
+options="!check !fhs"
+sha512sums="
+0841633b1676bb0129e37af3049a220d49a3eceab63d45ab1e8d8000ea34cf9d3985e6b568c46928f1dbdddd6e947a453c11c24b4186dab4d19972b3bf16122e  enableMoveSecondPen.qmd
+b7a86c9fc7a740ff680037b0e6b646ccd70e4e74fef78669b8ba92e18b873e4673fbba064272c595d13bc016288cd4a0532cd974534b7fef43a5b065f24add95  LICENSE
+"
+
+package() {
+	install -Dm644 "$srcdir/enableMoveSecondPen.qmd" \
+		"$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/enableMoveSecondPen.qmd"
+
+	mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
+	install -Dm644 "$srcdir/LICENSE" \
+		"$pkgdir/home/root/.vellum/licenses/$pkgname/LICENSE"
+	echo "https://github.com/rmitchellscott/xovi-qmd-extensions" > \
+		"$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
+}
