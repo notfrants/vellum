@@ -1,6 +1,6 @@
 maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=rmfakecloud-proxy
-pkgver=0.0.8
+pkgver=0.0.9
 pkgrel=0
 pkgdesc="HTTPS proxy for rmfakecloud - redirects reMarkable cloud traffic"
 _upstream_author="ddvk"
@@ -15,11 +15,6 @@ source="
 	installer-rmpro.sh::https://github.com/$_upstream_author/rmfakecloud-proxy/releases/download/v$pkgver/installer-rmpro.sh
 	installer-rm12.sh::https://github.com/$_upstream_author/rmfakecloud-proxy/releases/download/v$pkgver/installer-rm12.sh
 	LICENSE::https://raw.githubusercontent.com/$_upstream_author/rmfakecloud-proxy/master/LICENSE
-"
-sha512sums="
-6026d9999b048fda36e0ebeaa7556cf8c1e940c9345d80034d82ba2f033a6f9d29d66a715f49a9a4cb65c33dada66f6d7cb24a30ed343ca26106710435dd2288  installer-rmpro.sh
-d98efd65d03b4e9ff9935cc86369072378bda642c7d503caee20c2940d2fec5d4f20175b2fa4c5c6e74e4c6eb1efb76e5264883f631a27665a4a35750a975b97  installer-rm12.sh
-301894039600f7de8c2dad0be29bc5d0e4f975671a1dd7ce9974731daaa43c83a60f5b7d28bc368423d63e8965f04961800284d0269011a1ae536202ec98ca2e  LICENSE
 "
 
 package() {
@@ -39,3 +34,8 @@ package() {
 	install -Dm755 "$startdir/$pkgname.post-os-upgrade" \
 		"$pkgdir/home/root/.vellum/hooks/post-os-upgrade/$pkgname"
 }
+sha512sums="
+67495e3621ee024e40f6c45bdaf5dffab2360073d73cdc496bf269a7b830615ef79e7b6aad99d481505aed506153602f24a88801f6c264bdcba6ca057e31bfa4  installer-rmpro.sh
+04a5be16cd8d385b4ec49260e5bce07a22eaef669300d5b931d8484f06b75fa1c32c8cad3dbea88d44ba508356cf4fcb19e3716886a75e77241d944224438cf6  installer-rm12.sh
+301894039600f7de8c2dad0be29bc5d0e4f975671a1dd7ce9974731daaa43c83a60f5b7d28bc368423d63e8965f04961800284d0269011a1ae536202ec98ca2e  LICENSE
+"
