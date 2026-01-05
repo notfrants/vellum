@@ -3,6 +3,7 @@ pkgname=mount-utils
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="vellum-dev"
+_category="utilities"
 pkgdesc="Commands to toggle reMarkable filesystem between read-write and read-only"
 url="https://github.com/vellum-dev/vellum"
 arch="noarch"

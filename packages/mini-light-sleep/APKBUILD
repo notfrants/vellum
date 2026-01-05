@@ -3,6 +3,7 @@ pkgname=mini-light-sleep
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Replaces the light sleep banner with text saying "Sleeping" at the top right of the screen"
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

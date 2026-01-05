@@ -4,6 +4,7 @@ pkgver=1.0.0
 pkgrel=0
 pkgdesc="Entware software repository for reMarkable tablets"
 _upstream_author="Entware"
+_category="utilities"
 url="https://entware.net/"
 arch="aarch64 armv7"
 license="GPL-2.0"

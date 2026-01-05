@@ -337,3 +337,11 @@ jobs:
           done
 
           echo "Deploy complete!"
+
+      - name: Generate and upload package metadata
+        run: |
+          S3_BUCKET=packages.vellum.delivery ./scripts/generate-metadata.sh
+          aws s3 cp packages-metadata.json s3://packages.vellum.delivery/packages-metadata.json \
+            --content-type "application/json" \
+            --cache-control "max-age=300"
+          echo "Metadata uploaded to S3"

@@ -4,6 +4,7 @@ pkgver=0.0.11_pre2
 pkgrel=0
 _commit=a5a921cda5b0db3fa9a93fd016187a8928abfe9b
 _upstream_author="asivery"
+_category="ui"
 pkgdesc="reMarkable hacks in QMD format"
 url="https://github.com/asivery/rm-hacks-qmd"
 arch="noarch"

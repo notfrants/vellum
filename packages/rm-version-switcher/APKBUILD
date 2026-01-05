@@ -3,6 +3,7 @@ pkgname=rm-version-switcher
 pkgver=0.4.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="utilities"
 pkgdesc="Interactive CLI tool for switching between installed reMarkable OS versions"
 url="https://github.com/rmitchellscott/rm-version-switcher"
 arch="aarch64 armv7"

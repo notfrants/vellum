@@ -3,6 +3,7 @@ pkgname=rm-shot
 pkgver=1.0.2
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="utilities"
 pkgdesc="Screenshot extension for xovi framework"
 url="https://github.com/rmitchellscott/rm-shot"
 arch="aarch64 armv7"

@@ -3,6 +3,7 @@ pkgname=convert-to-text-remover
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Removes the Convert to text option from selection menus and the toolbar."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

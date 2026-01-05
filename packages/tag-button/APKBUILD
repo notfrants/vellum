@@ -3,6 +3,7 @@ pkgname=tag-button
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Puts a Tag action next to other list controls to open the tag editor directly."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

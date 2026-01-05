@@ -3,6 +3,7 @@ pkgname=tripletap
 pkgver=0.3.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="utilities"
 pkgdesc="Start xovi by triple-pressing the power button"
 url="https://github.com/rmitchellscott/xovi-tripletap"
 arch="aarch64 armv7"

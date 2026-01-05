@@ -3,6 +3,7 @@ pkgname=vellum-bash-completion
 pkgver=3.0.3
 pkgrel=1
 _upstream_author="alpinelinux"
+_category="utilities"
 pkgdesc="Bash completion for vellum package manager"
 url="https://gitlab.alpinelinux.org/alpine/apk-tools"
 arch="noarch"

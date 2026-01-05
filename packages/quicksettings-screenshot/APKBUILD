@@ -3,6 +3,7 @@ pkgname=quicksettings-screenshot
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Adds a screenshot button to the quick settings menu."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

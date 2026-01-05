@@ -3,6 +3,7 @@ pkgname=prevent-notebook-zoomout
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Forces notebook pages to start at 1x zoom with optional horizontal offset in portrait mode"
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

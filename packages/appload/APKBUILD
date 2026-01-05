@@ -3,6 +3,7 @@ pkgname=appload
 pkgver=0.4.1
 pkgrel=0
 _upstream_author="asivery"
+_category="framework"
 pkgdesc="Xovi extension for windowed and fullscreen apps on reMarkable tablets"
 url="https://github.com/asivery/rm-appload"
 arch="aarch64 armv7"

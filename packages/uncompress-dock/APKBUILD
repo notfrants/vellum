@@ -3,6 +3,7 @@ pkgname=uncompress-dock
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Replaces the More menu in the document dock with dedicated notebook, folder, and quick sheet buttons."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

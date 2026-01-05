@@ -3,6 +3,7 @@ pkgname=hide-page-labels-in-fullscreen
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Hides the page numbers at the bottom of the screen when the toolbar is hidden."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

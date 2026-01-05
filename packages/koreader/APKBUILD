@@ -3,6 +3,7 @@ pkgname=koreader
 pkgver=2025.10
 pkgrel=0
 _upstream_author="koreader"
+_category="apps"
 pkgdesc="An ebook reader application supporting PDF, DjVu, EPUB, FB2 and many more formats."
 url="https://github.com/koreader/koreader"
 arch="aarch64 armv7"

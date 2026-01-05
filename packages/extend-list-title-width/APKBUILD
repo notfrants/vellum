@@ -3,6 +3,7 @@ pkgname=extend-list-title-width
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Removes extra right margin for titles in list view to fill more of the available space."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

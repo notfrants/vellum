@@ -3,6 +3,7 @@ pkgname=rmstream
 pkgver=0.1.1
 pkgrel=0
 _upstream_author="asivery"
+_category="apps"
 pkgdesc="Stream your reMarkable's screen to any device on the local network via HTTP"
 url="https://github.com/asivery/appload-rmstream"
 arch="aarch64 armv7"

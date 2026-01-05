@@ -3,6 +3,7 @@ pkgname=xovi
 pkgver=0.3.1
 pkgrel=0
 _upstream_author="asivery"
+_category="framework"
 pkgdesc="Core xovi framework for reMarkable tablets"
 url="https://github.com/asivery/xovi"
 arch="aarch64 armv7"

@@ -4,6 +4,7 @@ pkgver=0.0.8
 pkgrel=0
 pkgdesc="HTTPS proxy for rmfakecloud - redirects reMarkable cloud traffic"
 _upstream_author="ddvk"
+_category="utilities"
 url="https://github.com/ddvk/rmfakecloud-proxy"
 arch="aarch64 armv7"
 license="MIT"

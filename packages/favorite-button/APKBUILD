@@ -3,6 +3,7 @@ pkgname=favorite-button
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Restores a Favorite action in the document list header for faster pinning."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

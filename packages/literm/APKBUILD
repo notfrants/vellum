@@ -3,6 +3,7 @@ pkgname=literm
 pkgver=0.1.5
 pkgrel=0
 _upstream_author="asivery"
+_category="apps"
 pkgdesc="Terminal emulator for reMarkable Paper Pro using QtQuick"
 url="https://github.com/asivery/rm-literm"
 arch="aarch64 armv7"
@@ -15,14 +16,12 @@ _release="v$pkgver"
 source="
 $pkgname-$pkgver-aarch64.so::https://github.com/asivery/rm-literm/releases/download/$_release/literm-aarch64.so
 $pkgname-$pkgver-armv7.so::https://github.com/asivery/rm-literm/releases/download/$_release/literm-arm32.so
-$pkgname.qmd::https://raw.githubusercontent.com/asivery/rm-literm/master/literm.qmd
 COPYING::https://raw.githubusercontent.com/asivery/rm-literm/master/COPYING
 "
 
 sha512sums="
 ae46394d5c59dc9f44ccef7e6524eab6e782a792c35ae6a7171c5b36ff2072b6d96d2f4840650f725e52eb2959c003c2135c74fc8dfb1ca9a503e2706ac47db6  literm-0.1.5-aarch64.so
 70ec7a6e5c6656c6797c24040fca1a34a12d81e1ab5497ff56eec40f0d2927ef781c033ba4eb1965b8db21d1733aed33ff6e3ccb1c5104d588aee6c2899741a5  literm-0.1.5-armv7.so
-6f8f7184e053751c38d0645f2d2c62bdd81ecfed6020c9c2c1551fdf3023295ed0111fc8147cba4cfa516d0dead7d451abbda1bd9b00e21de9298c27eea43155  literm.qmd
 aee80b1f9f7f4a8a00dcf6e6ce6c41988dcaedc4de19d9d04460cbfb05d99829ffe8f9d038468eabbfba4d65b38e8dbef5ecf5eb8a1b891d9839cda6c48ee957  COPYING
 "
 
@@ -34,9 +33,6 @@ package() {
 
 	install -Dm755 "$srcdir/$_so" \
 		"$pkgdir/home/root/xovi/extensions.d/$pkgname.so"
-
-	install -Dm644 "$srcdir/$pkgname.qmd" \
-		"$pkgdir/home/root/xovi/exthome/qt-resource-rebuilder/$pkgname.qmd"
 
 	mkdir -p "$pkgdir/home/root/.vellum/licenses/$pkgname"
 	install -Dm644 "$srcdir/COPYING" \

@@ -3,6 +3,7 @@ pkgname=sidebar-clock
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Adds a live clock to the library sidebar; tap the entry to toggle seconds display."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

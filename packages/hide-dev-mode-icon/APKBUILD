@@ -3,6 +3,7 @@ pkgname=hide-dev-mode-icon
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Hides the developer mode icon next to the battery icon."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

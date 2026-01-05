@@ -3,6 +3,7 @@ pkgname=hide-document-close
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Hides the close button in the document toolbar to prevent accidental exits."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

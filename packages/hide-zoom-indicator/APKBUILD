@@ -3,6 +3,7 @@ pkgname=hide-zoom-indicator
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Auto-hides zoom indicator after 4 seconds"
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"

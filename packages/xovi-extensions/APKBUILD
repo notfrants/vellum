@@ -3,6 +3,7 @@ pkgname=xovi-extensions
 pkgver=16.0.0
 pkgrel=0
 _upstream_author="asivery"
+_category="framework"
 pkgdesc="Extensions for xovi framework"
 url="https://github.com/asivery/rm-xovi-extensions"
 arch="aarch64 armv7"
@@ -118,7 +119,7 @@ message_broker() {
 
 framebuffer_spy() {
 	pkgdesc="Module for exposing the address of the system framebuffer"
-	depends="xovi"
+	depends="xovi !rm1"
 
 	install -Dm755 "$srcdir/framebuffer-spy.so" \
 		"$subpkgdir/home/root/xovi/extensions.d/framebuffer-spy.so"

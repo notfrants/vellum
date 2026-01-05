@@ -3,6 +3,7 @@ pkgname=force-sync
 pkgver=1.0.0
 pkgrel=0
 _upstream_author="NohamR"
+_category="ui"
 pkgdesc="Adds a cloud button in Quick Settings that forces a library sync when tapped."
 url="https://github.com/NohamR/xovi-qmd-extensions"
 arch="noarch"

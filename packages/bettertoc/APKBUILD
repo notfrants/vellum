@@ -3,6 +3,7 @@ pkgname=bettertoc
 pkgver=1.1.0
 pkgrel=0
 _upstream_author="rmitchellscott"
+_category="ui"
 pkgdesc="Adds the ability to add, delete, and edit Table of Contents entries in notebooks, PDFs, and EPUBs."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"
