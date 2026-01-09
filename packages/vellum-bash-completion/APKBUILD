@@ -55,7 +55,7 @@ _comp_cmd_vellum() {
 
 	if [[ $COMP_CWORD -eq 1 ]]; then
 		_comp_cmd_vellum_apk
-		COMPREPLY+=($(compgen -W "self install remove purge show" -- "$cur"))
+		COMPREPLY+=($(compgen -W "self install remove purge show upgrade check-os reenable" -- "$cur"))
 	else
 		_comp_cmd_vellum_apk
 	fi

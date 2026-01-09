@@ -345,3 +345,35 @@ jobs:
             --content-type "application/json" \
             --cache-control "max-age=300"
           echo "Metadata uploaded to S3"
+
+      - name: Commit metadata to vellum-site repository
+        env:
+          DEPLOY_KEY: ${{ secrets.VELLUM_SITE_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/vellum-site-key
+          chmod 600 ~/.ssh/vellum-site-key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/vellum-site-key -o IdentitiesOnly=yes"
+
+          git clone git@github.com:vellum-dev/vellum-site.git /tmp/vellum-site
+          cd /tmp/vellum-site
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          cp $GITHUB_WORKSPACE/packages-metadata.json src/data/packages-metadata.json
+
+          if git diff --quiet src/data/packages-metadata.json; then
+            echo "No changes to packages-metadata.json"
+          else
+            git add src/data/packages-metadata.json
+            git commit -m "Update packages metadata from vellum build
+
+          Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Source commit: $GITHUB_SHA"
+
+            git push origin main
+            echo "Metadata committed and pushed to vellum-site"
+          fi
