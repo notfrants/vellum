@@ -1,7 +1,7 @@
 maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=vellum-bash-completion
 pkgver=3.0.3
-pkgrel=1
+pkgrel=2
 _upstream_author="alpinelinux"
 _category="utilities"
 pkgdesc="Bash completion for vellum package manager"
@@ -34,17 +34,26 @@ package() {
 _comp_cmd_vellum() {
 	local cur="${COMP_WORDS[COMP_CWORD]}"
 
-	if [[ "${COMP_WORDS[1]}" == "self" ]]; then
-		case "${COMP_WORDS[2]:-}" in
-			uninstall)
-				COMPREPLY=($(compgen -W "--all --yes" -- "$cur"))
-				;;
-			*)
-				COMPREPLY=($(compgen -W "uninstall" -- "$cur"))
-				;;
-		esac
-		return
-	fi
+	case "${COMP_WORDS[1]}" in
+		self)
+			case "${COMP_WORDS[2]:-}" in
+				uninstall)
+					COMPREPLY=($(compgen -W "--all --yes -y" -- "$cur"))
+					;;
+				*)
+					COMPREPLY=($(compgen -W "uninstall" -- "$cur"))
+					;;
+			esac
+			return
+			;;
+		upgrade)
+			COMPREPLY=($(compgen -W "--yes -y" -- "$cur"))
+			return
+			;;
+		check-os|reenable)
+			return
+			;;
+	esac
 
 	# Translate aliases for argument completion
 	case "${COMP_WORDS[1]}" in

@@ -1,6 +1,6 @@
 maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=createpages-rm2
-pkgver=1.0.0
+pkgver=1.0.2
 pkgrel=0
 _upstream_author="rmitchellscott"
 _category="ui"
@@ -8,16 +8,12 @@ pkgdesc="Overrides new page creation to use reMarkable 2 dimensions."
 url="https://github.com/rmitchellscott/xovi-qmd-extensions"
 arch="noarch"
 license="MIT"
-depends="qt-resource-rebuilder remarkable-os>=3.24 remarkable-os<3.25 !createpages-paperpro"
+depends="qt-resource-rebuilder !createpages-paperpro remarkable-os>=3.24 remarkable-os<3.25"
 source="
 createPagesRM2Size.qmd::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/3.24/createPagesRM2Size.qmd
 LICENSE::https://raw.githubusercontent.com/rmitchellscott/xovi-qmd-extensions/main/LICENSE
 "
 options="!check !fhs"
-sha512sums="
-21cbbfa32dc11c31598b852c93c75f384b64009627a3ecaa04734c0f73ce2c5d7aa565e67e7da87288dcb49960abd860242d4715a98dd35668a51bff4ac40bd1  createPagesRM2Size.qmd
-b7a86c9fc7a740ff680037b0e6b646ccd70e4e74fef78669b8ba92e18b873e4673fbba064272c595d13bc016288cd4a0532cd974534b7fef43a5b065f24add95  LICENSE
-"
 
 package() {
 	install -Dm644 "$srcdir/createPagesRM2Size.qmd" \
@@ -29,3 +25,7 @@ package() {
 	echo "https://github.com/rmitchellscott/xovi-qmd-extensions" > \
 		"$pkgdir/home/root/.vellum/licenses/$pkgname/SOURCES"
 }
+sha512sums="
+21cbbfa32dc11c31598b852c93c75f384b64009627a3ecaa04734c0f73ce2c5d7aa565e67e7da87288dcb49960abd860242d4715a98dd35668a51bff4ac40bd1  createPagesRM2Size.qmd
+b7a86c9fc7a740ff680037b0e6b646ccd70e4e74fef78669b8ba92e18b873e4673fbba064272c595d13bc016288cd4a0532cd974534b7fef43a5b065f24add95  LICENSE
+"

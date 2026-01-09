@@ -1,6 +1,6 @@
 maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=hide-zoom-indicator
-pkgver=1.0.0
+pkgver=1.0.3
 pkgrel=0
 _upstream_author="rmitchellscott"
 _category="ui"
