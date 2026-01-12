@@ -158,12 +158,22 @@ jobs:
       - name: Build ${{ matrix.package }}
         run: ./scripts/build-package.sh "${{ matrix.package }}"
 
-      - name: Upload packages
-        uses: actions/upload-artifact@v4
+      - name: Upload to S3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: packages-noarch-${{ matrix.package }}
-          path: dist/
-          if-no-files-found: warn
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Upload packages to S3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          for arch in aarch64 armv7; do
+            if [ -d "dist/$arch" ] && ls dist/$arch/*.apk >/dev/null 2>&1; then
+              aws s3 cp dist/$arch/ s3://packages.vellum.delivery/$arch/ --recursive --exclude "APKINDEX.tar.gz"
+            fi
+          done
 
   build-multi-arch:
     needs: [lint, setup]
@@ -188,90 +198,32 @@ jobs:
       - name: Build ${{ matrix.package }} for ${{ matrix.arch }}
         run: ./scripts/build-package.sh "${{ matrix.package }}" "${{ matrix.arch }}"
 
-      - name: Upload packages
-        uses: actions/upload-artifact@v4
+      - name: Upload to S3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: packages-${{ matrix.package }}-${{ matrix.arch }}
-          path: dist/
-          if-no-files-found: warn
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
 
-  index:
+      - name: Upload packages to S3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          if [ -d "dist/${{ matrix.arch }}" ] && ls dist/${{ matrix.arch }}/*.apk >/dev/null 2>&1; then
+            aws s3 cp dist/${{ matrix.arch }}/ s3://packages.vellum.delivery/${{ matrix.arch }}/ --recursive --exclude "APKINDEX.tar.gz"
+          fi
+
+  deploy:
     needs: [setup, build-noarch, build-multi-arch]
+    runs-on: ubuntu-latest
     if: >-
       always() &&
       !failure() &&
-      (needs.build-noarch.result == 'success' || needs.build-multi-arch.result == 'success')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all packages
-        uses: actions/download-artifact@v4
-        with:
-          path: dist/
-          pattern: packages-*
-          merge-multiple: true
-
-      - name: Flatten package structure
-        run: |
-          mkdir -p dist/aarch64 dist/armv7
-          find dist -name "*.apk" -path "*/noarch/*" -exec sh -c 'cp "$1" dist/aarch64/ && cp "$1" dist/armv7/' _ {} \; 2>/dev/null || true
-          find dist -name "*.apk" -path "*/aarch64/*" ! -path "dist/aarch64/*" -exec mv {} dist/aarch64/ \; 2>/dev/null || true
-          find dist -name "*.apk" -path "*/armv7/*" ! -path "dist/armv7/*" -exec mv {} dist/armv7/ \; 2>/dev/null || true
-          rm -rf dist/packages dist/noarch
-          echo "Built packages:"
-          ls -la dist/aarch64/*.apk dist/armv7/*.apk 2>/dev/null || echo "No packages found"
-
-      - name: Set up signing key
-        run: |
-          if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
-            echo "${{ secrets.SIGNING_KEY }}" > keys/packages.rsa
-            chmod 600 keys/packages.rsa
-          fi
-
-      - name: Generate and sign APKINDEX
-        run: |
-          for arch in aarch64 armv7; do
-            ARCH_DIR="dist/$arch"
-            if [ -d "$ARCH_DIR" ] && ls "$ARCH_DIR"/*.apk >/dev/null 2>&1; then
-              echo "Generating APKINDEX for $arch..."
-              docker run --rm \
-                -v "$PWD/$ARCH_DIR:/packages:Z" \
-                -v "$PWD/keys:/keys:ro" \
-                -w /packages \
-                alpine:edge \
-                sh -c "
-                  apk add --no-cache apk-tools abuild
-                  cp /keys/packages.rsa.pub /etc/apk/keys/
-                  apk index --rewrite-arch $arch -o APKINDEX.tar.gz *.apk
-                  abuild-sign -k /keys/packages.rsa APKINDEX.tar.gz
-                  chown $(id -u):$(id -g) APKINDEX.tar.gz
-                "
-            fi
-          done
-
-      - name: Upload repository
-        uses: actions/upload-artifact@v4
-        with:
-          name: repository
-          path: dist/
-
-  deploy:
-    needs: index
-    runs-on: ubuntu-latest
-    if: >-
-      always() &&
-      needs.index.result == 'success' &&
+      !cancelled() &&
       github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download built packages
-        uses: actions/download-artifact@v4
-        with:
-          name: repository
-          path: new-packages/
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -290,31 +242,21 @@ jobs:
       - name: Purge S3 bucket (if requested)
         if: github.event.inputs.purge_s3 == 'true'
         run: |
-          echo "⚠️  PURGING ALL PACKAGES FROM S3 ⚠️"
+          echo "PURGING ALL PACKAGES FROM S3"
           for arch in aarch64 armv7; do
             aws s3 rm s3://packages.vellum.delivery/$arch/ --recursive
           done
           echo "S3 bucket purged"
 
-      - name: Upload new packages and regenerate index
+      - name: Regenerate APKINDEX from S3
         run: |
           for arch in aarch64 armv7; do
             echo "Processing $arch..."
 
-            # Upload new packages (without deleting old ones)
-            if [ -d "new-packages/$arch" ] && ls new-packages/$arch/*.apk >/dev/null 2>&1; then
-              echo "Uploading new packages for $arch..."
-              aws s3 cp new-packages/$arch/ s3://packages.vellum.delivery/$arch/ \
-                --recursive --exclude "APKINDEX.tar.gz"
-            fi
-
-            # Download ALL packages from S3 to regenerate complete index
-            echo "Downloading all packages from S3 for $arch..."
             mkdir -p s3-packages/$arch
             aws s3 cp s3://packages.vellum.delivery/$arch/ s3-packages/$arch/ \
               --recursive --exclude "APKINDEX.tar.gz" || true
 
-            # Generate fresh index with all packages
             if ls s3-packages/$arch/*.apk >/dev/null 2>&1; then
               echo "Regenerating APKINDEX for $arch with $(ls s3-packages/$arch/*.apk | wc -l) packages..."
               docker run --rm \
@@ -330,7 +272,6 @@ jobs:
                   chown $(id -u):$(id -g) APKINDEX.tar.gz
                 "
 
-              # Upload new index
               aws s3 cp s3-packages/$arch/APKINDEX.tar.gz \
                 s3://packages.vellum.delivery/$arch/APKINDEX.tar.gz
             fi
