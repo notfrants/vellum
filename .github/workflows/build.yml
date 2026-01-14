@@ -2,7 +2,6 @@ name: Build Packages
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -134,7 +133,10 @@ jobs:
 
   build-noarch:
     needs: [lint, setup]
-    if: needs.setup.outputs.has_packages == 'true' && fromJson(needs.setup.outputs.noarch)[0] != null
+    if: |
+      github.ref != 'refs/heads/testing' &&
+      needs.setup.outputs.has_packages == 'true' &&
+      fromJson(needs.setup.outputs.noarch)[0] != null
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -173,7 +175,10 @@ jobs:
 
   build-multi-arch:
     needs: [lint, setup]
-    if: needs.setup.outputs.has_packages == 'true' && fromJson(needs.setup.outputs.multiarch)[0] != null
+    if: |
+      github.ref != 'refs/heads/testing' &&
+      needs.setup.outputs.has_packages == 'true' &&
+      fromJson(needs.setup.outputs.multiarch)[0] != null
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -305,3 +310,58 @@ jobs:
             git push origin main
             echo "Metadata committed and pushed to vellum-site"
           fi
+
+  build-testing:
+    needs: lint
+    if: github.ref == 'refs/heads/testing'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up signing key
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" > keys/packages.rsa
+          chmod 600 keys/packages.rsa
+
+      - name: Build all packages
+        run: |
+          mkdir -p dist/aarch64 dist/armv7 dist/noarch
+          for pkg in packages/*/APKBUILD; do
+            pkgname=$(basename $(dirname "$pkg"))
+            if grep -q '^arch="noarch"' "$pkg"; then
+              ./scripts/build-package.sh "$pkgname" || echo "Failed: $pkgname"
+            else
+              ./scripts/build-package.sh "$pkgname" aarch64 || echo "Failed: $pkgname (aarch64)"
+              ./scripts/build-package.sh "$pkgname" armv7 || echo "Failed: $pkgname (armv7)"
+            fi
+          done
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Sync to testing S3
+        run: |
+          for arch in aarch64 armv7; do
+            # Merge noarch into each arch dir
+            if [ -d dist/noarch ]; then
+              cp dist/noarch/*.apk dist/$arch/ 2>/dev/null || true
+            fi
+
+            # Generate APKINDEX
+            docker run --rm \
+              -v "$PWD/dist/$arch:/packages:Z" \
+              -v "$PWD/keys:/keys:ro" \
+              alpine:edge sh -c "
+                apk add --no-cache apk-tools abuild
+                cd /packages
+                apk index --rewrite-arch $arch -o APKINDEX.tar.gz *.apk
+                abuild-sign -k /keys/packages.rsa APKINDEX.tar.gz
+              "
+
+            # Sync with delete to clean old packages
+            aws s3 sync dist/$arch/ s3://packages.vellum.delivery/testing/$arch/ --delete
+          done
