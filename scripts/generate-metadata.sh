@@ -57,7 +57,10 @@ for apkbuild in packages/*/APKBUILD; do
     _cat="${_category:-other}"
     _auth="${_upstream_author:-unknown}"
     _maint="${maintainer:-unknown}"
-    echo "$pkgname	$_cat	$_auth	$_maint" >> "$WORKDIR/apkbuild-meta.tsv"
+    pkgdir=$(dirname "$apkbuild")
+    _modsys="false"
+    [ -f "$pkgdir/$pkgname.post-os-upgrade" ] && _modsys="true"
+    echo "$pkgname	$_cat	$_auth	$_maint	$_modsys" >> "$WORKDIR/apkbuild-meta.tsv"
 
     # Extract subpackages (may be multiline)
     subpackages=$(awk '/^subpackages="/{flag=1; sub(/^subpackages="/, ""); if (/"$/) {sub(/"$/, ""); print; next}} flag{if (/"$/) {sub(/"$/, ""); print; flag=0; next} print}' "$apkbuild" | tr '\n\t' '  ')
@@ -65,16 +68,18 @@ for apkbuild in packages/*/APKBUILD; do
     for subpkg in $subpackages; do
         # Strip function suffix like :split_func
         subpkg_name="${subpkg%%:*}"
-        [ -n "$subpkg_name" ] && echo "$subpkg_name	$_cat	$_auth	$_maint" >> "$WORKDIR/apkbuild-meta.tsv"
+        [ -n "$subpkg_name" ] && echo "$subpkg_name	$_cat	$_auth	$_maint	$_modsys" >> "$WORKDIR/apkbuild-meta.tsv"
     done
 done
 
 while IFS='	' read -r pkg ver desc url lic deps arch provides; do
-    apkbuild_line=$(grep -E "^${pkg}	" "$WORKDIR/apkbuild-meta.tsv" 2>/dev/null | head -1 || echo "$pkg	other	unknown	unknown")
-    [ -z "$apkbuild_line" ] && apkbuild_line="$pkg	other	unknown	unknown"
+    apkbuild_line=$(grep -E "^${pkg}	" "$WORKDIR/apkbuild-meta.tsv" 2>/dev/null | head -1 || echo "$pkg	other	unknown	unknown	false")
+    [ -z "$apkbuild_line" ] && apkbuild_line="$pkg	other	unknown	unknown	false"
     category=$(echo "$apkbuild_line" | cut -f2)
     author=$(echo "$apkbuild_line" | cut -f3)
     maintainer=$(echo "$apkbuild_line" | cut -f4)
+    modifies_system=$(echo "$apkbuild_line" | cut -f5)
+    [ -z "$modifies_system" ] && modifies_system="false"
 
     categories_json=$(echo "$category" | tr ' ' '\n' | grep -v '^$' | jq -R . | jq -s .)
     [ -z "$categories_json" ] || [ "$categories_json" = "[]" ] && categories_json='["other"]'
@@ -134,6 +139,7 @@ while IFS='	' read -r pkg ver desc url lic deps arch provides; do
            --argjson deps "$regular_deps" \
            --argjson provides "$provides_arr" \
            --arg arch "$arch" \
+           --argjson modifies_system "$modifies_system" \
            '.packages[$pkg][$ver] = {
              pkgdesc: $desc,
              upstream_author: $author,
@@ -147,7 +153,8 @@ while IFS='	' read -r pkg ver desc url lic deps arch provides; do
              depends: $deps,
              conflicts: $conflicts,
              provides: $provides,
-             arch: [$arch]
+             arch: [$arch],
+             modifies_system: $modifies_system
            }' "$METADATA_FILE" > tmp.json && mv tmp.json "$METADATA_FILE"
     fi
 
