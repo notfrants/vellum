@@ -1,7 +1,7 @@
 maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=tripletap
 pkgver=1.0.0
-pkgrel=0
+pkgrel=1
 _upstream_author="rmitchellscott"
 _category="utilities"
 pkgdesc="Start xovi by triple-pressing the power button"
