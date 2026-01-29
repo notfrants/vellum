@@ -26,7 +26,7 @@ for arch in aarch64 armv7; do
     awk -v arch="$arch" '
     BEGIN { RS=""; FS="\n" }
     {
-        pkg=""; ver=""; desc=""; url=""; lic=""; deps=""; provides=""
+        pkg=""; ver=""; desc=""; url=""; lic=""; deps=""; provides=""; install_if=""; origin=""; maint=""
         for (i=1; i<=NF; i++) {
             if ($i ~ /^P:/) pkg = substr($i, 3)
             else if ($i ~ /^V:/) ver = substr($i, 3)
@@ -35,11 +35,15 @@ for arch in aarch64 armv7; do
             else if ($i ~ /^L:/) lic = substr($i, 3)
             else if ($i ~ /^D:/) deps = substr($i, 3)
             else if ($i ~ /^p:/) provides = substr($i, 3)
+            else if ($i ~ /^i:/) install_if = substr($i, 3)
+            else if ($i ~ /^o:/) origin = substr($i, 3)
+            else if ($i ~ /^m:/) maint = substr($i, 3)
         }
         if (pkg && ver) {
             gsub(/"/, "\\\"", desc)
             gsub(/"/, "\\\"", url)
-            print pkg "\t" ver "\t" desc "\t" url "\t" lic "\t" (deps ? deps : "_") "\t" arch "\t" (provides ? provides : "_")
+            gsub(/"/, "\\\"", maint)
+            print pkg "\t" ver "\t" desc "\t" url "\t" lic "\t" (deps ? deps : "_") "\t" arch "\t" (provides ? provides : "_") "\t" (install_if ? install_if : "_") "\t" (origin ? origin : "_") "\t" (maint ? maint : "_")
         }
     }' "$INDEX_FILE" >> "$WORKDIR/all-packages.tsv"
 done
@@ -88,14 +92,24 @@ for apkbuild in packages/*/APKBUILD; do
     done
 done
 
-while IFS='	' read -r pkg ver desc url lic deps arch provides; do
-    apkbuild_line=$(grep -E "^${pkg}	" "$WORKDIR/apkbuild-meta.tsv" 2>/dev/null | head -1 || echo "$pkg	other	unknown	unknown	false")
+while IFS='	' read -r pkg ver desc url lic deps arch provides install_if origin apkindex_maint; do
+    # Try to get metadata from APKBUILD - first check the package itself, then fall back to origin (parent)
+    apkbuild_line=$(grep -E "^${pkg}	" "$WORKDIR/apkbuild-meta.tsv" 2>/dev/null | head -1 || true)
+    if [ -z "$apkbuild_line" ] && [ -n "$origin" ] && [ "$origin" != "_" ] && [ "$origin" != "$pkg" ]; then
+        apkbuild_line=$(grep -E "^${origin}	" "$WORKDIR/apkbuild-meta.tsv" 2>/dev/null | head -1 || true)
+    fi
     [ -z "$apkbuild_line" ] && apkbuild_line="$pkg	other	unknown	unknown	false"
+
     category=$(echo "$apkbuild_line" | cut -f2)
     author=$(echo "$apkbuild_line" | cut -f3)
     maintainer=$(echo "$apkbuild_line" | cut -f4)
     modifies_system=$(echo "$apkbuild_line" | cut -f5)
     [ -z "$modifies_system" ] && modifies_system="false"
+
+    # Use APKINDEX maintainer as fallback
+    if [ "$maintainer" = "unknown" ] && [ -n "$apkindex_maint" ] && [ "$apkindex_maint" != "_" ]; then
+        maintainer="$apkindex_maint"
+    fi
 
     categories_json=$(echo "$category" | tr ' ' '\n' | grep -v '^$' | jq -R . | jq -s .)
     [ -z "$categories_json" ] || [ "$categories_json" = "[]" ] && categories_json='["other"]'
@@ -107,12 +121,23 @@ while IFS='	' read -r pkg ver desc url lic deps arch provides; do
     device_names="rm1 rm2 rmpp rmppm"
     pos_devices=""
     neg_devices=""
+
+    # Check depends for device constraints
     for token in $deps; do
         case "$token" in
             rm1|rm2|rmpp|rmppm) pos_devices="$pos_devices $token" ;;
             !rm1|!rm2|!rmpp|!rmppm) neg_devices="$neg_devices ${token#!}" ;;
         esac
     done
+
+    # Check install_if for device constraints
+    if [ -n "$install_if" ] && [ "$install_if" != "_" ]; then
+        for token in $install_if; do
+            case "$token" in
+                rm1|rm2|rmpp|rmppm) pos_devices="$pos_devices $token" ;;
+            esac
+        done
+    fi
 
     if [ -n "$pos_devices" ]; then
         devices=$(echo "$pos_devices" | tr ' ' '\n' | grep -v '^$' | sort -u | jq -R . | jq -s .)
@@ -156,6 +181,8 @@ while IFS='	' read -r pkg ver desc url lic deps arch provides; do
            --argjson provides "$provides_arr" \
            --arg arch "$arch" \
            --argjson modifies_system "$modifies_system" \
+           --arg origin "${origin:-}" \
+           --arg install_if_val "${install_if:-}" \
            '.packages[$pkg][$ver] = {
              pkgdesc: $desc,
              upstream_author: $author,
@@ -170,7 +197,9 @@ while IFS='	' read -r pkg ver desc url lic deps arch provides; do
              conflicts: $conflicts,
              provides: $provides,
              arch: [$arch],
-             modifies_system: $modifies_system
+             modifies_system: $modifies_system,
+             auto_install: (if $install_if_val == "" or $install_if_val == "_" then false else true end),
+             _origin: (if $origin == "" or $origin == "_" then null else $origin end)
            }' "$METADATA_FILE" > tmp.json && mv tmp.json "$METADATA_FILE"
     fi
 
@@ -187,6 +216,40 @@ jq '
     .value |= with_entries(
       .value.conflicts += ($reverse[$pkg] // []) |
       .value.conflicts |= unique
+    )
+  )
+' "$METADATA_FILE" > tmp.json && mv tmp.json "$METADATA_FILE"
+
+# Compute parent package devices from subpackages
+# If a package has subpackages (other packages with _origin pointing to it),
+# the parent's devices should be the union of all subpackage devices
+echo "Computing parent package devices from subpackages..."
+jq '
+  # Build map of parent -> [subpackage devices]
+  ([.packages | to_entries[] | .key as $pkg | .value | to_entries[] |
+    select(.value._origin != null and .value._origin != $pkg) |
+    {parent: .value._origin, version: .key, devices: .value.devices}
+  ] | group_by(.parent) | map({
+    key: .[0].parent,
+    value: (map(.devices) | add | unique)
+  }) | from_entries) as $parent_devices |
+
+  # Update parent packages with computed devices
+  .packages |= with_entries(
+    .key as $pkg |
+    if $parent_devices[$pkg] then
+      .value |= with_entries(
+        .value.devices = $parent_devices[$pkg]
+      )
+    else . end
+  )
+' "$METADATA_FILE" > tmp.json && mv tmp.json "$METADATA_FILE"
+
+# Remove temporary _origin field from output
+jq '
+  .packages |= with_entries(
+    .value |= with_entries(
+      .value |= del(._origin)
     )
   )
 ' "$METADATA_FILE" > tmp.json && mv tmp.json "$METADATA_FILE"
