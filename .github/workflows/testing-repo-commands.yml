@@ -115,9 +115,9 @@ jobs:
           multiarch_packages="[]"
 
           for pkg in $packages; do
-            apkbuild="packages/$pkg/APKBUILD"
-            if [[ -f "$apkbuild" ]]; then
-              arch=$(grep '^arch=' "$apkbuild" | cut -d'"' -f2)
+            velbuild="packages/$pkg/VELBUILD"
+            if [[ -f "$velbuild" ]]; then
+              arch=$(grep '^arch=' "$velbuild" | cut -d'"' -f2)
               if [[ "$arch" == "noarch" ]]; then
                 noarch_packages=$(echo "$noarch_packages" | jq -c ". + [\"$pkg\"]")
               else
