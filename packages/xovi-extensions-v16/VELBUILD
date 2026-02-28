@@ -132,6 +132,7 @@ postinstall(){
 	echo "==============================================="
 	echo ""
 }
+
 sha512sums="
 2688a21c3f2e01f0b08fde3cb3a455907aa5f8ad9cd62599d0db21a5d533b7e60ad57a0755819879369c873966c25a53546fbf87d533150a44c2c6e0249fb532  extensions-aarch64.zip
 e2b0231ef9e00859c9d094af2150031664d6ed414db05b0c6d9d0291273acb013fdd054b9f920f8f8974bb2c5402c85726c22e3af7af963637d76cace38fcb8c  extensions-arm32-testing.zip
