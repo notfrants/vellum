@@ -2,15 +2,14 @@ maintainer="Mitchell Scott <mitchell@scottlabs.io>"
 pkgname=xovi-extensions
 pkgver=18.0.0
 pkgrel=0
-_upstream_author="asivery"
-_category="framework"
+upstream_author="asivery"
+category="framework"
 pkgdesc="Extensions for xovi framework"
 url="https://github.com/asivery/rm-xovi-extensions"
 arch="aarch64 armv7"
 license="GPL-3.0"
 depends="xovi>=0.3.2-r1 remarkable-os>=3.20 !qt-resource-rebuilder<18.0.0"
 options="!check !fhs !strip !tracedeps"
-install="qt-resource-rebuilder.post-install"
 
 subpackages="
 	qt-resource-rebuilder:qt_resource_rebuilder
@@ -113,6 +112,16 @@ webserver_remote() {
 	install -Dm644 "$srcdir"/xovi/inactive-extensions/webserver-remote.so \
 		"$subpkgdir"/home/root/xovi/extensions.d/webserver-remote.so
 }
+
+postinstall() {
+	echo ""
+	echo "============================================"
+	echo "  NOTE: Before using any QT modifications,"
+	echo "  you must run: xovi/rebuild_hashtable"
+	echo "============================================"
+	echo ""
+}
+
 sha512sums="
 a9e7bea74f8c5dd0fa7e48bf283e7c26fd1a5e8a390f06f38e88d123c881a0bf996fab9acc4deb1475e615bcc632a374da1f4317e6564224f46c483bad621d06  xovi-aarch64.tar.gz
 e8d72652c9d7a57aa6eb9bd536e1c57f564c7f57d7f87e71aac0acc48d882e26c66286d48bf02a750863d429551a292bdcf31eebab97abe2d64725948ee56c4b  xovi-arm32.tar.gz

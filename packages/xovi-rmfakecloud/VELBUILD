@@ -2,15 +2,14 @@ maintainer="notfrants <notfrants@proton.me>"
 pkgname=xovi-rmfakecloud
 pkgver=1.1.0
 pkgrel=0
-_upstream_author="asivery"
-_category="utilities"
+upstream_author="asivery"
+category="utilities"
 pkgdesc="xovi module for using a self hosted rM cloud with xochitl"
 url="https://github.com/asivery/xovi-rmfakecloud"
 arch="aarch64 armv7"
 license="MIT"
 depends="xovi-extensions>=18.0.0"
 options="!check !fhs !strip !tracedeps"
-install="$pkgname.post-install $pkgname.post-deinstall"
 
 source="
 https://github.com/notfrants/xovi-rmfakecloud/releases/download/actions-test7/xovi-rmfakecloud-aarch64.tar.gz
@@ -55,6 +54,40 @@ package() {
 		"$pkgdir"/home/root/.vellum/licenses/$pkgname/LICENSE
 	echo "https://github.com/notfrants/xovi-rmfakecloud/archive/refs/tags/actions-test7.tar.gz" > \
 		"$pkgdir"/home/root/.vellum/licenses/$pkgname/SOURCES
+}
+
+postinstall() {
+	cat << 'EOF'
+
+=============================================================
+                  xovi-rmfakecloud installed
+=============================================================
+
+  To complete the setup, run:
+
+    /home/root/xovi/exthome/rmfakecloud/setup.sh
+
+  You will be prompted for your rmfakecloud server hostname
+  and port number. You only need to do this once.
+
+  Alternatively, edit the config file at:
+
+    /home/root/xovi/exthome/rmfakecloud/config.conf
+  
+  To include your rmfakecloud server hostname and port:
+
+    host=<your domain>
+    port=443
+
+=============================================================
+
+EOF
+}
+
+postdeinstall() {
+	if [ "$VELLUM_PURGE" = "1" ]; then
+		rm -rf /home/root/xovi/exthome/rmfakecloud
+	fi
 }
 sha512sums="
 655de94a5c7898b5f328f1c5126dc1a415e7d927d928d99eba0a0d22fcebd03bc884e5d142853f04f6fc2ca341bedaf815f03fb7c31cd3e7a4af27ff30f92b2b  xovi-rmfakecloud-aarch64.tar.gz
