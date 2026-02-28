@@ -79,14 +79,14 @@ jobs:
           CHANGED="${{ steps.changed.outputs.packages }}"
 
           # Get all noarch packages
-          all_noarch=$(for pkg in packages/*/APKBUILD; do
+          all_noarch=$(for pkg in packages/*/VELBUILD; do
             if grep -q '^arch="noarch"' "$pkg"; then
               basename $(dirname "$pkg")
             fi
           done)
 
           # Get all multiarch packages
-          all_multiarch=$(for pkg in packages/*/APKBUILD; do
+          all_multiarch=$(for pkg in packages/*/VELBUILD; do
             if grep -qE '^arch="(aarch64|armv7|aarch64 armv7)"' "$pkg"; then
               basename $(dirname "$pkg")
             fi
@@ -135,7 +135,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Lint APKBUILD files
+      - &install-vbuild
+        name: Install vbuild
+        run: |
+          set -e
+          curl \
+            --location \
+            'https://github.com/Eeems/vbuild/releases/download/0.0.11/vbuild-vbuild-ubuntu' \
+            --output /usr/local/bin/vbuild
+          chmod +x /usr/local/bin/vbuild
+
+      - name: Lint VELBUILD files
         run: |
           PACKAGES="${{ needs.setup.outputs.packages }}"
           if [ "$PACKAGES" == "all" ] || [ -z "$PACKAGES" ]; then
@@ -158,20 +168,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up signing key
+      - *install-vbuild
+
+      - &set-up-signing-key
+        name: Set up signing key
+        id: signing
         run: |
           if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
             echo "${{ secrets.SIGNING_KEY }}" > keys/packages.rsa
             chmod 600 keys/packages.rsa
+            echo "has_key=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Build ${{ matrix.package }}
         run: ./scripts/build-package.sh "${{ matrix.package }}"
 
-      - name: Get package name from APKBUILD
+      - &verify-signature
+        name: Verify package signatures
+        if: steps.signing.outputs.has_key == 'true'
+        run: |
+          docker run --rm \
+            -v "$PWD/dist:/dist:ro" \
+            -v "$PWD/keys:/keys:ro" \
+            ghcr.io/eeems/vbuild-builder:main \
+            sh -c "
+              cp /keys/packages.rsa.pub /etc/apk/keys/
+              for apk in /dist/*/*.apk; do
+                [ -f \"\$apk\" ] || continue
+                apk verify \"\$apk\" || exit 1
+              done
+            "
+
+      - &get-package-name
+        name: Get package name from VELBUILD
         id: pkgname
         run: |
-          pkgname=$(grep '^pkgname=' packages/${{ matrix.package }}/APKBUILD | cut -d= -f2)
+          pkgname=$(grep '^pkgname=' packages/${{ matrix.package }}/VELBUILD | cut -d= -f2)
           echo "name=$pkgname" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
@@ -182,7 +214,8 @@ jobs:
           path: dist/noarch/${{ steps.pkgname.outputs.name }}-*.apk
           if-no-files-found: error
 
-      - name: Upload to S3
+      - &upload-to-s3
+        name: Upload to S3
         if: github.repository == 'vellum-dev/vellum' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -214,21 +247,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up signing key
-        run: |
-          if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
-            echo "${{ secrets.SIGNING_KEY }}" > keys/packages.rsa
-            chmod 600 keys/packages.rsa
-          fi
+      - *install-vbuild
+
+      - *set-up-signing-key
 
       - name: Build ${{ matrix.package }} for ${{ matrix.arch }}
         run: ./scripts/build-package.sh "${{ matrix.package }}" "${{ matrix.arch }}"
 
-      - name: Get package name from APKBUILD
-        id: pkgname
-        run: |
-          pkgname=$(grep '^pkgname=' packages/${{ matrix.package }}/APKBUILD | cut -d= -f2)
-          echo "name=$pkgname" >> $GITHUB_OUTPUT
+      - *verify-signature
+
+      - *get-package-name
 
       - name: Upload artifact
         if: github.event_name == 'pull_request'
@@ -238,13 +266,7 @@ jobs:
           path: dist/${{ matrix.arch }}/${{ steps.pkgname.outputs.name }}-*.apk
           if-no-files-found: warn
 
-      - name: Upload to S3
-        if: github.repository == 'vellum-dev/vellum' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+      - *upload-to-s3
 
       - name: Upload packages to S3
         if: github.repository == 'vellum-dev/vellum' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -275,12 +297,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Set up signing key
-        run: |
-          if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
-            echo "${{ secrets.SIGNING_KEY }}" > keys/packages.rsa
-            chmod 600 keys/packages.rsa
-          fi
+      - *set-up-signing-key
 
       - name: Regenerate APKINDEX from S3
         run: |
@@ -319,9 +336,8 @@ jobs:
                 -v "$PWD/s3-packages/$arch:/packages:Z" \
                 -v "$PWD/keys:/keys:ro" \
                 -w /packages \
-                alpine:edge \
+                ghcr.io/eeems/vbuild-builder:main \
                 sh -c "
-                  apk add --no-cache apk-tools abuild
                   cp /keys/packages.rsa.pub /etc/apk/keys/
                   apk index --rewrite-arch $arch -o APKINDEX.tar.gz *.apk
                   abuild-sign -k /keys/packages.rsa APKINDEX.tar.gz
@@ -379,4 +395,3 @@ jobs:
             git push origin main
             echo "Changes committed and pushed to vellum-index"
           fi
-

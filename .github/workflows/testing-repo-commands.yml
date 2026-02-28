@@ -115,9 +115,9 @@ jobs:
           multiarch_packages="[]"
 
           for pkg in $packages; do
-            apkbuild="packages/$pkg/APKBUILD"
-            if [[ -f "$apkbuild" ]]; then
-              arch=$(grep '^arch=' "$apkbuild" | cut -d'"' -f2)
+            velbuild="packages/$pkg/VELBUILD"
+            if [[ -f "$velbuild" ]]; then
+              arch=$(grep '^arch=' "$velbuild" | cut -d'"' -f2)
               if [[ "$arch" == "noarch" ]]; then
                 noarch_packages=$(echo "$noarch_packages" | jq -c ". + [\"$pkg\"]")
               else
@@ -149,6 +149,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.check-command.outputs.pr_sha }}
+
+      - name: Install vbuild
+        run: |
+          set -e
+          curl \
+            --location \
+            'https://github.com/Eeems/vbuild/releases/download/0.0.11/vbuild-vbuild-ubuntu' \
+            --output /usr/local/bin/vbuild
+          chmod +x /usr/local/bin/vbuild
 
       - name: Set up signing key
         run: |
@@ -191,6 +200,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.check-command.outputs.pr_sha }}
+
+      - name: Install vbuild
+        run: |
+          set -e
+          curl \
+            --location \
+            'https://github.com/Eeems/vbuild/releases/download/0.0.11/vbuild-vbuild-ubuntu' \
+            --output /usr/local/bin/vbuild
+          chmod +x /usr/local/bin/vbuild
 
       - name: Set up signing key
         run: |
