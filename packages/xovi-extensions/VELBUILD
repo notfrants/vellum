@@ -24,7 +24,7 @@ _release="v18-23032026"
 source="
 https://github.com/asivery/rm-xovi-extensions/releases/download/$_release/xovi-aarch64.tar.gz
 https://github.com/asivery/rm-xovi-extensions/releases/download/$_release/xovi-arm32.tar.gz
-https://raw.githubusercontent.com/asivery/rm-xovi-extensions/master/LICENSE
+https://raw.githubusercontent.com/asivery/rm-xovi-extensions/$_release/LICENSE
 "
 
 

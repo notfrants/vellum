@@ -17,7 +17,7 @@ options="!check !fhs !strip !tracedeps"
 source="
 https://github.com/rmitchellscott/rm-shot/releases/download/v$pkgver/rm-shot-aarch64.so
 https://github.com/rmitchellscott/rm-shot/releases/download/v$pkgver/rm-shot-armv7.so
-https://raw.githubusercontent.com/rmitchellscott/rm-shot/main/LICENSE
+https://raw.githubusercontent.com/rmitchellscott/rm-shot/v$pkgver/LICENSE
 "
 
 package() {

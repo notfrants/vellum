@@ -17,7 +17,7 @@ options="!check !fhs !strip !tracedeps"
 source="
 https://github.com/asivery/rm-appload/releases/download/v$pkgver/appload-aarch64.zip
 https://github.com/asivery/rm-appload/releases/download/v$pkgver/appload-arm32.zip
-https://raw.githubusercontent.com/asivery/rm-appload/master/LICENSE
+https://raw.githubusercontent.com/asivery/rm-appload/v$pkgver/LICENSE
 "
 
 

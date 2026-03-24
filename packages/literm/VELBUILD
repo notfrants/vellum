@@ -17,7 +17,7 @@ options="!check !fhs !strip !tracedeps"
 source="
 https://github.com/asivery/rm-literm/releases/download/v$pkgver/literm-aarch64.so
 https://github.com/asivery/rm-literm/releases/download/v$pkgver/literm-arm32.so
-https://raw.githubusercontent.com/asivery/rm-literm/master/COPYING
+https://raw.githubusercontent.com/asivery/rm-literm/v$pkgver/COPYING
 "
 
 

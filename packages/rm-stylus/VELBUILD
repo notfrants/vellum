@@ -16,7 +16,7 @@ options="!check !fhs !strip !tracedeps"
 source="
 https://github.com/rmitchellscott/rm-stylus/releases/download/v$pkgver/rm-stylus-aarch64.so
 https://github.com/rmitchellscott/rm-stylus/releases/download/v$pkgver/rm-stylus-armv7.so
-https://raw.githubusercontent.com/rmitchellscott/rm-stylus/main/LICENSE
+https://raw.githubusercontent.com/rmitchellscott/rm-stylus/v$pkgver/LICENSE
 "
 
 package() {
